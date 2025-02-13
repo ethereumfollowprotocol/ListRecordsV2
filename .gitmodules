@@ -7,3 +7,6 @@
 [submodule "EFPListRecords/lib/forge-std"]
 	path = EFPListRecords/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "EFPAccountMetadata/lib/forge-std"]
+	path = EFPAccountMetadata/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
