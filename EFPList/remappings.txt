@@ -1,0 +1,11 @@
+forge-std/=lib/forge-std/src/
+src/EFPListRegistry.sol/=src/EFPListRegistry.sol/
+src/lib/=src/lib/
+src/interfaces/=src/interfaces/
+lib/openzeppelin-contracts/=lib/openzeppelin-contracts/
+lib/ERC721A/=lib/ERC721A/
+ERC721A/=lib/ERC721A/contracts/
+ds-test/=lib/forge-std/lib/ds-test/src/
+erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
+openzeppelin-contracts/=lib/openzeppelin-contracts/
+openzeppelin/=lib/openzeppelin-contracts/contracts/
