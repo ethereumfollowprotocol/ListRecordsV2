@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {Ownable} from 'lib/openzeppelin-contracts/contracts/access/Ownable.sol';
-import {Pausable} from 'lib/openzeppelin-contracts/contracts/security/Pausable.sol';
+import {Ownable} from '../lib/openzeppelin-contracts/contracts/access/Ownable.sol';
+import {Pausable} from '../lib/openzeppelin-contracts/contracts/security/Pausable.sol';
 import {IEFPAccountMetadata} from './interfaces/IEFPAccountMetadata.sol';
 import {ENSReverseClaimer} from './lib/ENSReverseClaimer.sol';
 

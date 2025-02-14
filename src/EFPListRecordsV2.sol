@@ -199,6 +199,7 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
       revert InvalidSlot(slot, slotUser);
     }
     _setMetadataValue(slot, 'manager', abi.encodePacked(manager));
+    _setMetadataValue(slot, 'user', abi.encodePacked(manager));
   }
 
   /**
@@ -207,6 +208,15 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
    */
   function claimListManager(uint256 slot) external whenNotPaused {
     _claimListManager(slot, msg.sender);
+  }
+
+  /**
+   * @notice Allows the sender to transfer management of a list to a new address.
+   * @param slot The list's unique identifier.
+   * @param manager The address to be set as the new manager.
+   */
+  function claimListManagerForAddress(uint256 slot, address manager) external whenNotPaused {
+    _claimListManager(slot, manager);
   }
 
   ///////////////////////////////////////////////////////////////////////////

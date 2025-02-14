@@ -4,6 +4,11 @@
     "repository": "github:ethereumfollowprotocol/ListRecordsV2",
     "module": "index.ts",
     "type": "module",
+    "scripts": {
+        "build": "forge build",
+        "test": "forge test --fork-url ${ETH_RPC_URL} -vv",
+        "coverage": "forge coverage --fork-url ${ETH_RPC_URL}"
+    },
     "dependencies": {
         "@wagmi/cli": "^2.0.4",
         "viem": "^2.9.29",

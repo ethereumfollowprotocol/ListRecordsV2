@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {ERC721A} from 'lib/ERC721A/contracts/ERC721A.sol';
-import {ERC721AQueryable} from 'lib/ERC721A/contracts/extensions/ERC721AQueryable.sol';
-import {IERC721A} from 'lib/ERC721A/contracts/interfaces/IERC721A.sol';
-import {Ownable} from 'lib/openzeppelin-contracts/contracts/access/Ownable.sol';
-import {Pausable} from 'lib/openzeppelin-contracts/contracts/security/Pausable.sol';
+import {ERC721A} from '../lib/ERC721A/contracts/ERC721A.sol';
+import {ERC721AQueryable} from '../lib/ERC721A/contracts/extensions/ERC721AQueryable.sol';
+import {IERC721A} from '../lib/ERC721A/contracts/interfaces/IERC721A.sol';
+import {Ownable} from '../lib/openzeppelin-contracts/contracts/access/Ownable.sol';
+import {Pausable} from '../lib/openzeppelin-contracts/contracts/security/Pausable.sol';
 import {IEFPListRegistry} from './interfaces/IEFPListRegistry.sol';
 import {IEFPListNFTPriceOracle} from './interfaces/IEFPListNFTPriceOracle.sol';
 import {ITokenURIProvider} from './interfaces/ITokenURIProvider.sol';
