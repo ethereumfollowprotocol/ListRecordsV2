@@ -25,6 +25,11 @@ contract EFPListRecordsTest is Test {
     listRecords = new EFPListRecordsV2();
   }
 
+  function getSlot(address addr, uint96 nonce) public pure returns (uint256) {
+    bytes memory slot = abi.encodePacked(addr, uint96(nonce));
+    return uint256(bytes32(slot));
+  }
+
   // Helper function to compare bytes
   function _assertBytesEqual(bytes memory a, bytes memory b) internal pure {
     assert(a.length == b.length);
@@ -72,8 +77,9 @@ contract EFPListRecordsTest is Test {
   /////////////////////////////////////////////////////////////////////////////
 
   function test_CanClaimListManager() public {
-    listRecords.claimListManager(NONCE);
-    assertEq(listRecords.getListManager(NONCE), address(this));
+    uint256 slot = getSlot(address(this), 999);
+    listRecords.claimListManager(slot);
+    assertEq(listRecords.getListManager(slot), address(this));
   }
 
   function test_RevertIf_ClaimListManagerWhenPaused() public {
@@ -87,23 +93,26 @@ contract EFPListRecordsTest is Test {
   /////////////////////////////////////////////////////////////////////////////
 
   function test_CanSetListManager() public {
-    listRecords.claimListManager(NONCE);
-    listRecords.setListManager(NONCE, address(1));
-    assertEq(listRecords.getListManager(NONCE), address(1));
+    uint256 slot = getSlot(address(this), 2222);
+    listRecords.claimListManager(slot);
+    listRecords.setListManager(slot, address(1));
+    assertEq(listRecords.getListManager(slot), address(1));
   }
 
   function test_RevertIf_SetListManagerWhenPaused() public {
-    listRecords.claimListManager(NONCE);
+    uint256 slot = getSlot(address(this), 22322);
+    listRecords.claimListManager(slot);
     listRecords.pause();
     vm.expectRevert(Error_EnforcedPause);
-    listRecords.setListManager(NONCE, address(1));
+    listRecords.setListManager(slot, address(1));
   }
 
   function test_RevertIf_SetListManagerFromNonManager() public {
-    listRecords.claimListManager(NONCE);
+    uint256 slot = getSlot(address(this), 22522);
+    listRecords.claimListManager(slot);
     vm.prank(address(1));
     vm.expectRevert(Error_NotListManager);
-    listRecords.setListManager(NONCE, address(1));
+    listRecords.setListManager(slot, address(1));
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -111,15 +120,16 @@ contract EFPListRecordsTest is Test {
   /////////////////////////////////////////////////////////////////////////////
 
   function _CanApplyListOp(uint8 opType) internal {
-    assertEq(listRecords.getListOpCount(NONCE), 0);
+    uint256 slot = getSlot(address(this), 12345);
+    assertEq(listRecords.getListOpCount(slot), 0);
 
-    // listRecords.claimListManager(NONCE);
+    listRecords.claimListManager(slot);
 
     bytes memory listOp = _encodeListOp(opType);
-    listRecords.applyListOp(NONCE, listOp);
+    listRecords.applyListOp(slot, listOp);
 
-    assertEq(listRecords.getListOpCount(NONCE), 1);
-    _assertBytesEqual(listRecords.getListOp(NONCE, 0), listOp);
+    assertEq(listRecords.getListOpCount(slot), 1);
+    _assertBytesEqual(listRecords.getListOp(slot, 0), listOp);
   }
 
   function test_CanApplyListOpToAddRecord() public {
@@ -149,27 +159,29 @@ contract EFPListRecordsTest is Test {
   /////////////////////////////////////////////////////////////////////////////
 
   function test_CanApplyListOpsSingular() public {
-    assertEq(listRecords.getListOpCount(NONCE), 0);
+    uint256 slot = getSlot(address(this), 11111);
+    assertEq(listRecords.getListOpCount(slot), 0);
 
     bytes[] memory listOps = new bytes[](1);
     listOps[0] = _encodeListOp(LIST_OP_TYPE_ADD_RECORD);
-    listRecords.applyListOps(NONCE, listOps);
+    listRecords.applyListOps(slot, listOps);
 
-    assertEq(listRecords.getListOpCount(NONCE), 1);
-    _assertBytesEqual(listRecords.getListOp(NONCE, 0), listOps[0]);
+    assertEq(listRecords.getListOpCount(slot), 1);
+    _assertBytesEqual(listRecords.getListOp(slot, 0), listOps[0]);
   }
 
   function test_CanApplyListOpsMultiple() public {
-    assertEq(listRecords.getListOpCount(NONCE), 0);
+    uint256 slot = getSlot(address(this), 98765);
+    assertEq(listRecords.getListOpCount(slot), 0);
 
     bytes[] memory listOps = new bytes[](2);
     listOps[0] = _encodeListOp(LIST_OP_TYPE_ADD_RECORD);
     listOps[1] = _encodeListOp(LIST_OP_TYPE_REMOVE_RECORD);
-    listRecords.applyListOps(NONCE, listOps);
+    listRecords.applyListOps(slot, listOps);
 
-    assertEq(listRecords.getListOpCount(NONCE), 2);
-    _assertBytesEqual(listRecords.getListOp(NONCE, 0), listOps[0]);
-    _assertBytesEqual(listRecords.getListOp(NONCE, 1), listOps[1]);
+    assertEq(listRecords.getListOpCount(slot), 2);
+    _assertBytesEqual(listRecords.getListOp(slot, 0), listOps[0]);
+    _assertBytesEqual(listRecords.getListOp(slot, 1), listOps[1]);
   }
 
   function test_RevertIf_applyListOpsWhenPaused() public {
@@ -178,6 +190,7 @@ contract EFPListRecordsTest is Test {
     bytes[] memory listOps = new bytes[](2);
     listOps[0] = _encodeListOp(LIST_OP_TYPE_ADD_RECORD);
     listOps[1] = _encodeListOp(LIST_OP_TYPE_REMOVE_RECORD);
-    listRecords.applyListOps(NONCE, listOps);
+    uint256 slot = getSlot(address(this), 3456);
+    listRecords.applyListOps(slot, listOps);
   }
 }

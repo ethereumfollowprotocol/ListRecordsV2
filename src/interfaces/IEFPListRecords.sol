@@ -23,8 +23,6 @@ interface IEFPListMetadata {
   // List Manager Functions
   function claimListManager(uint256 slot) external;
 
-  function claimListManagerForAddress(uint256 slot, address manager) external;
-
   function getListManager(uint256 slot) external view returns (address);
 
   function setListManager(uint256 slot, address manager) external;
@@ -35,6 +33,8 @@ interface IEFPListMetadata {
   function setListUser(uint256 slot, address user) external;
 
   error SlotAlreadyClaimed(uint256 slot, address manager);
+
+  error InvalidSlot(uint256 slot, address user);
 
   error NotListManager(address manager);
 
