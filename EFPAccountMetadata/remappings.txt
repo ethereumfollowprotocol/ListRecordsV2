@@ -1,0 +1,10 @@
+forge-std/=lib/forge-std/src/
+src/lib/=src/lib/
+src/interfaces/=src/interfaces/
+src/EFPAccountMetadata.sol/=src/EFPAccountMetadata.sol/
+lib/openzeppelin-contracts/=lib/openzeppelin-contracts/
+ERC721A/=lib/ERC721A/contracts/
+ds-test/=lib/forge-std/lib/ds-test/src/
+erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
+openzeppelin-contracts/=lib/openzeppelin-contracts/
+openzeppelin/=lib/openzeppelin-contracts/contracts/
