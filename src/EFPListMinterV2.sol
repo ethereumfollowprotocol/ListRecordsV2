@@ -168,14 +168,6 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     accountMetadata.setValueForAddress(to, 'primary-list', abi.encodePacked(tokenId));
   }
 
-  function _getChainId() internal view returns (uint256) {
-    uint256 id;
-    assembly {
-      id := chainid()
-    }
-    return id;
-  }
-
   // Generalized function to convert bytes to uint256 with a given offset
   function _bytesToUint(bytes memory data, uint256 offset) internal pure returns (uint256) {
     require(data.length >= offset + 32, 'Data too short');

@@ -20,3 +20,5 @@ _
 .DS_Store
 generated/actions.ts
 generated/hooks.ts
+
+lcov.info
