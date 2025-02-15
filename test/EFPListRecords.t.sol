@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import 'forge-std/Test.sol';
+import {console} from 'forge-std/console.sol';
 import {EFPListRecordsV2} from '../src/EFPListRecordsV2.sol';
 
 contract EFPListRecordsTest is Test {
@@ -20,6 +21,9 @@ contract EFPListRecordsTest is Test {
   bytes4 constant Error_EnforcedPause = bytes4(keccak256('EnforcedPause()'));
   bytes4 constant Error_NotListManagerSelector = bytes4(keccak256('NotListManager(address)'));
   bytes constant Error_NotListManager = abi.encodeWithSelector(Error_NotListManagerSelector, address(1));
+  bytes4 constant Error_InvalidSlotSelector = bytes4(keccak256('InvalidSlot(uint256,address)'));
+  bytes4 constant Error_SlotAlreadyClaimedSelector = bytes4(keccak256('SlotAlreadyClaimed(uint256,address)'));
+//   bytes constant Error_InvalidSlot = abi.encodeWithSelector(Error_InvalidSlotSelector, 2222, address(1));
 
   function setUp() public {
     listRecords = new EFPListRecordsV2();
@@ -93,10 +97,17 @@ contract EFPListRecordsTest is Test {
   /////////////////////////////////////////////////////////////////////////////
 
   function test_CanSetListManager() public {
+    uint256 badslot = getSlot(address(1), 2222);
+    vm.expectRevert(abi.encodeWithSelector(Error_InvalidSlotSelector, badslot, address(1)));
+    listRecords.setListManager(badslot, address(1));
+
     uint256 slot = getSlot(address(this), 2222);
     listRecords.claimListManager(slot);
     listRecords.setListManager(slot, address(1));
     assertEq(listRecords.getListManager(slot), address(1));
+
+    vm.expectRevert(abi.encodeWithSelector(Error_SlotAlreadyClaimedSelector, slot, address(1)));
+    listRecords.claimListManager(slot);
   }
 
   function test_RevertIf_SetListManagerWhenPaused() public {

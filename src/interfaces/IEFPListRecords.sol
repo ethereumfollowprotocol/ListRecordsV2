@@ -23,6 +23,8 @@ interface IEFPListMetadata {
   // List Manager Functions
   function claimListManager(uint256 slot) external;
 
+  function claimListManagerForAddress(uint256 slot, address manager) external;
+
   function getListManager(uint256 slot) external view returns (address);
 
   function setListManager(uint256 slot, address manager) external;

@@ -103,8 +103,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     registry.mintTo{value: msg.value}(msg.sender, listStorageLocation);
     _setDefaultListForAccount(msg.sender, tokenId);
     if (recordsContract == address(listRecordsL1)) {
-      listRecordsL1.setListUser(slot, msg.sender);
-      listRecordsL1.setListManager(slot, msg.sender);
+      listRecordsL1.claimListManagerForAddress(slot, msg.sender);
     }
   }
 
@@ -121,8 +120,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     registry.mintTo{value: msg.value}(to, listStorageLocation);
     _setDefaultListForAccount(msg.sender, tokenId);
     if (recordsContract == address(listRecordsL1)) {
-      listRecordsL1.setListUser(slot, msg.sender);
-      listRecordsL1.setListManager(slot, msg.sender);
+      listRecordsL1.claimListManagerForAddress(slot, msg.sender);
     }
   }
 
@@ -168,14 +166,6 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function _setDefaultListForAccount(address to, uint256 tokenId) internal {
     accountMetadata.setValueForAddress(to, 'primary-list', abi.encodePacked(tokenId));
-  }
-
-  function _getChainId() internal view returns (uint256) {
-    uint256 id;
-    assembly {
-      id := chainid()
-    }
-    return id;
   }
 
   // Generalized function to convert bytes to uint256 with a given offset

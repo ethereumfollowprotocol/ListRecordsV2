@@ -4,7 +4,14 @@
     "repository": "github:ethereumfollowprotocol/ListRecordsV2",
     "module": "index.ts",
     "type": "module",
+    "scripts": {
+        "build": "forge build",
+        "test": "forge test --fork-url ${ETH_RPC_URL} -vv",
+        "coverage": "forge coverage --fork-url ${ETH_RPC_URL} --report lcov && lcov-viewer lcov -o ./coverage ./lcov.info",
+        "deploy:localhost": "forge script scripts/deploy.s.sol --fork-url ${ETH_RPC_URL} --broadcast --private-key ${PRIVATE_KEY} "
+    },
     "dependencies": {
+        "@lcov-viewer/cli": "^1.3.0",
         "@wagmi/cli": "^2.0.4",
         "viem": "^2.9.29",
         "wagmi": "^2.3.1"
