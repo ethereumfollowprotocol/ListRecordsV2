@@ -3,10 +3,20 @@ pragma solidity ^0.8.23;
 
 import 'forge-std/Test.sol';
 import {console} from 'forge-std/console.sol';
+import {EFPAccountMetadata} from '../EFPAccountMetadata/src/EFPAccountMetadata.sol';
+import {EFPListRegistry} from '../EFPList/src/EFPListRegistry.sol';
 import {EFPListRecordsV2} from '../src/EFPListRecordsV2.sol';
+import {EFPListMinterV2} from '../src/EFPListMinterV2.sol';
+import {IEFPListMetadata} from '../src/interfaces/IEFPListRecords.sol';
 
 contract EFPListRecordsTest is Test {
+  EFPAccountMetadata public accountMetadata;
+  EFPListRegistry public registry;
   EFPListRecordsV2 public listRecords;
+  EFPListMinterV2 public minter;
+  address public accountMetadataAddress = address(0x5289fE5daBC021D02FDDf23d4a4DF96F4E0F17EF);
+  address public registryAddress = address(0x0E688f5DCa4a0a4729946ACbC44C792341714e08);
+  address public deployer = address(0x860bFe7019d6264A991277937ea6002714C3c508);
   uint8 constant LIST_OP_VERSION = 1;
   uint8 constant LIST_OP_TYPE_ADD_RECORD = 1;
   uint8 constant LIST_OP_TYPE_REMOVE_RECORD = 2;
@@ -24,14 +34,44 @@ contract EFPListRecordsTest is Test {
   bytes4 constant Error_InvalidSlotSelector = bytes4(keccak256('InvalidSlot(uint256,address)'));
   bytes4 constant Error_SlotAlreadyClaimedSelector = bytes4(keccak256('SlotAlreadyClaimed(uint256,address)'));
 //   bytes constant Error_InvalidSlot = abi.encodeWithSelector(Error_InvalidSlotSelector, 2222, address(1));
+  uint8 constant VERSION = 1;
+  uint8 constant LIST_LOCATION_TYPE = 1;
+
+  // ERC721Receiver
+  function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+    return bytes4(keccak256('onERC721Received(address,address,uint256,bytes)'));
+  }
+
 
   function setUp() public {
+    //get contract instances
+    accountMetadata = EFPAccountMetadata(accountMetadataAddress);
+    registry = EFPListRegistry(registryAddress);
+
+    //create new list records and list minter
     listRecords = new EFPListRecordsV2();
+    minter = new EFPListMinterV2(address(registry), address(accountMetadata), address(listRecords));
+    
+    //impersonate multisig (contract owner) and add minter as proxy in account metadata
+    vm.prank(deployer);
+    accountMetadata.addProxy(address(minter));
   }
 
   function getSlot(address addr, uint96 nonce) public pure returns (uint256) {
     bytes memory slot = abi.encodePacked(addr, uint96(nonce));
     return uint256(bytes32(slot));
+  }
+
+  function _makeListStorageLocation(address records, uint256 slot) private view returns (bytes memory) {
+    return abi.encodePacked(VERSION, LIST_LOCATION_TYPE, this._getChainId(), records, slot);
+  }
+
+  function _getChainId() external view returns (uint256) {
+    uint256 id;
+    assembly {
+      id := chainid()
+    }
+    return id;
   }
 
   // Helper function to compare bytes
@@ -54,6 +94,17 @@ contract EFPListRecordsTest is Test {
       result = abi.encodePacked(result, 'tag');
     }
     return result;
+  }
+  
+  function _bytesToAddress(bytes memory data, uint256 offset) internal pure returns (address addr) {
+    require(data.length >= offset + 20, 'Data too short');
+    assembly {
+      // Extract 20 bytes from the specified offset
+      addr := mload(add(add(data, 20), offset))
+      // clear the 12 least significant bits of the address
+      addr := and(addr, 0x000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+    }
+    return addr;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -124,6 +175,41 @@ contract EFPListRecordsTest is Test {
     vm.prank(address(1));
     vm.expectRevert(Error_NotListManager);
     listRecords.setListManager(slot, address(1));
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // setListUser
+  /////////////////////////////////////////////////////////////////////////////
+
+  function test_CanSetListUser() public {
+    uint256 badslot = getSlot(address(1), 2222);
+    vm.expectRevert(abi.encodeWithSelector(Error_InvalidSlotSelector, badslot, address(1)));
+    listRecords.setListUser(badslot, address(1));
+
+    uint256 slot = getSlot(address(this), 2222);
+    listRecords.claimListManager(slot);
+    listRecords.setListUser(slot, address(1));
+    listRecords.setListManager(slot, address(1));
+    assertEq(listRecords.getListUser(slot), address(1));
+    
+    vm.expectRevert(abi.encodeWithSelector(Error_SlotAlreadyClaimedSelector, slot, address(1)));
+    listRecords.claimListManager(slot);
+  }
+
+  function test_RevertIf_SetListUserWhenPaused() public {
+    uint256 slot = getSlot(address(this), 22322);
+    listRecords.claimListManager(slot);
+    listRecords.pause();
+    vm.expectRevert(Error_EnforcedPause);
+    listRecords.setListUser(slot, address(1));
+  }
+
+  function test_RevertIf_SetListUserFromNonManager() public {
+    uint256 slot = getSlot(address(this), 22522);
+    listRecords.claimListManager(slot);
+    vm.prank(address(1));
+    vm.expectRevert(Error_NotListManager);
+    listRecords.setListUser(slot, address(1));
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -203,5 +289,119 @@ contract EFPListRecordsTest is Test {
     listOps[1] = _encodeListOp(LIST_OP_TYPE_REMOVE_RECORD);
     uint256 slot = getSlot(address(this), 3456);
     listRecords.applyListOps(slot, listOps);
+  }
+
+  function test_RevertIf_applyListOpsFromNonManager() public {
+    uint256 slot = getSlot(address(this), 3456);
+    listRecords.claimListManager(slot);
+    vm.prank(address(1));
+    vm.expectRevert(Error_NotListManager);
+
+    bytes[] memory listOps = new bytes[](2);
+    listOps[0] = _encodeListOp(LIST_OP_TYPE_ADD_RECORD);
+    listOps[1] = _encodeListOp(LIST_OP_TYPE_REMOVE_RECORD);
+    listRecords.applyListOps(slot, listOps);
+  }
+
+  function test_RevertIf_setMetaApplyListOpsFromNonManager() public {
+    uint256 slot = getSlot(address(this), 3456);
+    listRecords.claimListManager(slot);
+    vm.prank(address(1));
+    vm.expectRevert(Error_NotListManager);
+
+    bytes[] memory listOps = new bytes[](2);
+    listOps[0] = _encodeListOp(LIST_OP_TYPE_ADD_RECORD);
+    listOps[1] = _encodeListOp(LIST_OP_TYPE_REMOVE_RECORD);
+
+    IEFPListMetadata.KeyValue[] memory meta = new IEFPListMetadata.KeyValue[](2);
+    meta[0] = IEFPListMetadata.KeyValue('user', abi.encodePacked(address(3)));
+    meta[1] = IEFPListMetadata.KeyValue('manager', abi.encodePacked(address(3)));
+
+    listRecords.setMetadataValuesAndApplyListOps(slot, meta, listOps);
+    assertEq(listRecords.getListOpCount(slot), 0);
+    assertEq(listRecords.getListManager(slot), address(this));
+  }
+
+  function test_setMetaApplyListOpsFromNonManager() public {
+    uint256 slot = getSlot(address(this), 3456);
+    listRecords.claimListManager(slot);
+ 
+    bytes[] memory listOps = new bytes[](2);
+    listOps[0] = _encodeListOp(LIST_OP_TYPE_ADD_RECORD);
+    listOps[1] = _encodeListOp(LIST_OP_TYPE_REMOVE_RECORD);
+
+    IEFPListMetadata.KeyValue[] memory meta = new IEFPListMetadata.KeyValue[](2);
+    meta[0] = IEFPListMetadata.KeyValue('user', abi.encodePacked(address(3)));
+    meta[1] = IEFPListMetadata.KeyValue('manager', abi.encodePacked(address(3)));
+
+    listRecords.setMetadataValuesAndApplyListOps(slot, meta, listOps);
+    assertEq(listRecords.getListOpCount(slot), 2);
+    assertEq(listRecords.getListManager(slot), address(3));
+
+    bytes memory metaValue = listRecords.getMetadataValue(slot, 'user');
+    assertEq(address(_bytesToAddress(metaValue, 0)), address(3));
+
+    bytes[] memory fetchedListOps = listRecords.getAllListOps(slot);
+    assertEq(fetchedListOps.length, 2);
+    _assertBytesEqual(fetchedListOps[0], listOps[0]);
+    _assertBytesEqual(fetchedListOps[1], listOps[1]);
+
+
+    bytes[] memory rangeListOps = listRecords.getListOpsInRange(slot,1,2);
+    assertEq(rangeListOps.length, 1);
+    _assertBytesEqual(rangeListOps[0], listOps[1]);
+
+    vm.expectRevert('Invalid range');
+    bytes[] memory badRangeListOps = listRecords.getListOpsInRange(slot,6,5);
+  }
+
+  function test_setAndGetListMetadata() public {
+    uint256 slot = getSlot(address(7), 3456);
+    vm.prank(address(7));
+    listRecords.claimListManager(slot);
+    assertEq(listRecords.getListManager(slot), address(7));
+
+    vm.prank(address(7));
+    listRecords.setMetadataValue(slot, 'user', abi.encodePacked(address(7)));
+
+    string[] memory keys = new string[](2);
+    keys[0] = 'user';
+    keys[1] = 'manager';
+
+    bytes[] memory meta = listRecords.getMetadataValues(slot, keys);
+    assertEq(meta.length, 2);
+    assertEq(address(_bytesToAddress(meta[0], 0)), address(7));
+    assertEq(address(_bytesToAddress(meta[1], 0)), address(7));
+  }
+
+  function test_setAndGetListMetadataBatch() public {
+    uint256 slot = getSlot(address(9), 3456);
+    vm.prank(address(9));
+    listRecords.claimListManager(slot);
+    assertEq(listRecords.getListManager(slot), address(9));
+
+    IEFPListMetadata.KeyValue[] memory meta = new IEFPListMetadata.KeyValue[](2);
+    meta[0] = IEFPListMetadata.KeyValue('user', abi.encodePacked(address(3)));
+    meta[1] = IEFPListMetadata.KeyValue('manager', abi.encodePacked(address(3)));
+
+    vm.prank(address(9));
+    listRecords.setMetadataValues(slot, meta);
+    assertEq(listRecords.getListManager(slot), address(3));
+
+    string[] memory keys = new string[](2);
+    keys[0] = 'user';
+    keys[1] = 'manager';
+
+    bytes[] memory newmeta = listRecords.getMetadataValues(slot, keys);
+    assertEq(newmeta.length, 2);
+    assertEq(address(_bytesToAddress(newmeta[0], 0)), address(3));
+    assertEq(address(_bytesToAddress(newmeta[1], 0)), address(3));
+
+    // bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+    // uint256 tokenId = registry.totalSupply();
+    // vm.prank(address(3));
+    // minter.easyMintTo(address(this), listStorageLocation);
+    // assertEq(registry.ownerOf(tokenId), address(this));
+
   }
 }
