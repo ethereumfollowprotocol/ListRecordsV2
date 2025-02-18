@@ -235,8 +235,17 @@ contract EFPListMinterTest is Test {
         vm.expectRevert('EFPListMinter: invalid list storage location type');
         minter.mintPrimaryListNoMeta(listStorageLocation);
     }
-    // check mint with no meta to address
+    function test_NativeChainDetection() public {
+        uint256 nativeSlot = _getSlot(address(this), 5555);
+        bytes memory listStorageLocation_native = abi.encodePacked(uint8(1), LIST_LOCATION_TYPE, this._getChainId(), address(listRecords), nativeSlot);
+        minter.easyMint(listStorageLocation_native);
+        vm.assertEq(listRecords.getListManager(nativeSlot), address(this));
 
+        uint256 nonNativeSlot = _getSlot(address(this), 1234);
+        bytes memory listStorageLocation_nonNative = abi.encodePacked(uint8(1), LIST_LOCATION_TYPE, uint256(1), address(listRecords), nonNativeSlot);
+        minter.easyMint(listStorageLocation_nonNative);
+        vm.assertEq(listRecords.getListManager(nonNativeSlot), address(0));
+    }
     // change slot / reset list
     
 }

@@ -75,7 +75,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    * @return slot The slot of the list.
    * @return contractAddress The contract address of the list.
    */
-  function decodeL1ListStorageLocation(bytes calldata listStorageLocation) internal pure returns (uint256, address) {
+  function decodeL1ListStorageLocation(bytes calldata listStorageLocation) internal pure returns (uint256, uint256, address) {
     // the list storage location is
     // - version (1 byte)
     // - list storate location type (1 byte)
@@ -87,8 +87,9 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     require(listStorageLocation[1] == 0x01, 'EFPListMinter: invalid list storage location type');
     address contractAddress = _bytesToAddress(listStorageLocation, 34);
 
+    uint256 chain = _bytesToUint(listStorageLocation, 2);
     uint256 slot = _bytesToUint(listStorageLocation, 54);
-    return (slot, contractAddress);
+    return (chain, slot, contractAddress);
   }
 
   /**
@@ -97,12 +98,13 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function easyMint(bytes calldata listStorageLocation) public payable whenNotPaused {
     // validate the list storage location
-    (uint256 slot, address recordsContract) = decodeL1ListStorageLocation(listStorageLocation);
+    (uint256 chain, uint256 slot, address recordsContract) = decodeL1ListStorageLocation(listStorageLocation);
 
     uint256 tokenId = registry.totalSupply();
+    uint256 currentChain = block.chainid;
     registry.mintTo{value: msg.value}(msg.sender, listStorageLocation);
     _setDefaultListForAccount(msg.sender, tokenId);
-    if (recordsContract == address(listRecordsL1)) {
+    if (recordsContract == address(listRecordsL1) && currentChain == chain) {
       listRecordsL1.claimListManagerForAddress(slot, msg.sender);
     }
   }
@@ -114,12 +116,13 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function easyMintTo(address to, bytes calldata listStorageLocation) public payable whenNotPaused {
     // validate the list storage location
-    (uint256 slot, address recordsContract) = decodeL1ListStorageLocation(listStorageLocation);
+    (uint256 chain, uint256 slot, address recordsContract) = decodeL1ListStorageLocation(listStorageLocation);
 
     uint256 tokenId = registry.totalSupply();
+    uint256 currentChain = block.chainid;
     registry.mintTo{value: msg.value}(to, listStorageLocation);
     _setDefaultListForAccount(msg.sender, tokenId);
-    if (recordsContract == address(listRecordsL1)) {
+    if (recordsContract == address(listRecordsL1) && currentChain == chain) {
       listRecordsL1.claimListManagerForAddress(slot, msg.sender);
     }
   }
