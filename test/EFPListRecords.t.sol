@@ -353,6 +353,7 @@ contract EFPListRecordsTest is Test {
 
     vm.expectRevert('Invalid range');
     bytes[] memory badRangeListOps = listRecords.getListOpsInRange(slot,6,5);
+    assertEq(badRangeListOps.length, 0);
   }
 
   function test_setAndGetListMetadata() public {
