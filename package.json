@@ -9,6 +9,7 @@
         "test": "forge test --fork-url ${ETH_RPC_URL} -vv",
         "coverage": "forge coverage --fork-url ${ETH_RPC_URL} --report lcov && lcov-viewer lcov -o ./coverage ./lcov.info",
         "deploy": "forge script script/deploy.s.sol --fork-url ${ETH_RPC_URL} --broadcast --private-key ${PRIVATE_KEY}",
+        "deploy:testnet": "forge script script/deploy.s.sol --fork-url ${TESTNET_RPC_URL} --broadcast --private-key ${PRIVATE_KEY}",
         "deploy:local": "forge script ./script/deploy.s.sol --fork-url http://127.0.0.1:8545 --broadcast --private-key ${PRIVATE_KEY}",
         "testnet": "anvil --chain-id 8453 --fork-url ${ETH_RPC_URL}"
     },
