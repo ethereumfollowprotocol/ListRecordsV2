@@ -398,16 +398,29 @@ contract EFPListRecordsTest is Test {
     assertEq(address(_bytesToAddress(newmeta[0], 0)), address(3));
     assertEq(address(_bytesToAddress(newmeta[1], 0)), address(3));
 
-    // uint256 newslot = getSlot(address(9), 3456);
-    // bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), newslot);
-    // uint256 tokenId = registry.totalSupply();
-    // vm.prank(address(3));
-    // vm.expectRevert(abi.encodeWithSelector(Error_InvalidSlotSelector, slot, address(3)));
-    // minter.easyMintTo(address(this), listStorageLocation);
-    // vm.prank(address(3));
-    // minter.easyMintTo(address(9), listStorageLocation);
-    // assertEq(registry.ownerOf(tokenId), address(9));
+    uint256 newslot = getSlot(address(9), 567567);
+    bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), newslot);
 
+    vm.prank(address(3));
+    vm.expectRevert(abi.encodeWithSelector(Error_InvalidSlotSelector, newslot, address(9)));
+    minter.easyMintTo(address(this), listStorageLocation);
+
+    vm.prank(address(3));
+    vm.expectRevert(abi.encodeWithSelector(Error_InvalidSlotSelector, newslot, address(9)));
+    minter.easyMintTo(address(3), listStorageLocation);
+
+    uint256 tokenId = registry.totalSupply();
+    vm.prank(address(9));
+    minter.easyMint(listStorageLocation);
+    assertEq(registry.ownerOf(tokenId), address(9));
+
+    vm.prank(address(4));
+    vm.expectRevert(abi.encodeWithSelector(Error_NotListManagerSelector, address(4)));
+    listRecords.setListUser(newslot, address(4));
+
+    vm.prank(address(4));
+    vm.expectRevert(abi.encodeWithSelector(Error_SlotAlreadyClaimedSelector, newslot, address(9)));
+    listRecords.claimListManager(newslot);
   }
 
   function test_slotRunner() public { 
