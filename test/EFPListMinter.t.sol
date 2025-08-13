@@ -464,49 +464,49 @@ contract EFPListMinterTest is Test {
         bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
         
         vm.expectEmit(true, false, false, true);
-        emit EFPListMinterV2.Minted(address(this), listStorageLocation);
+        emit EFPListMinterV2.Minted('easyMint', address(this), listStorageLocation);
         
         minter.easyMint(listStorageLocation);
     }
 
-    function test_EasyMintTo_EmitsMintedToEvent() public {
+    function test_EasyMintTo_EmitsMintedEvent() public {
         uint256 slot = _getSlot(address(this), 5678);
         bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
         address recipient = address(0x456);
         
         vm.expectEmit(true, false, false, true);
-        emit EFPListMinterV2.MintedTo(recipient, listStorageLocation);
+        emit EFPListMinterV2.Minted('easyMintTo', recipient, listStorageLocation);
         
         minter.easyMintTo(recipient, listStorageLocation);
     }
 
-    function test_MintPrimaryListNoMeta_EmitsMintedPrimaryListNoMetaEvent() public {
+    function test_MintPrimaryListNoMeta_EmitsMintedEvent() public {
         uint256 slot = _getSlot(address(this), 9012);
         bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
         
         vm.expectEmit(true, false, false, true);
-        emit EFPListMinterV2.MintedPrimaryListNoMeta(address(this), listStorageLocation);
+        emit EFPListMinterV2.Minted('mintPrimaryListNoMeta', address(this), listStorageLocation);
         
         minter.mintPrimaryListNoMeta(listStorageLocation);
     }
 
-    function test_MintNoMeta_EmitsMintedNoMetaEvent() public {
+    function test_MintNoMeta_EmitsMintedEvent() public {
         uint256 slot = _getSlot(address(this), 3456);
         bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
         
         vm.expectEmit(true, false, false, true);
-        emit EFPListMinterV2.MintedNoMeta(address(this), listStorageLocation);
+        emit EFPListMinterV2.Minted('mintNoMeta', address(this), listStorageLocation);
         
         minter.mintNoMeta(listStorageLocation);
     }
 
-    function test_MintToNoMeta_EmitsMintedToNoMetaEvent() public {
+    function test_MintToNoMeta_EmitsMintedEvent() public {
         uint256 slot = _getSlot(address(this), 7890);
         bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
         address recipient = address(0x789);
         
         vm.expectEmit(true, false, false, true);
-        emit EFPListMinterV2.MintedToNoMeta(recipient, listStorageLocation);
+        emit EFPListMinterV2.Minted('mintToNoMeta', recipient, listStorageLocation);
         
         minter.mintToNoMeta(recipient, listStorageLocation);
     }
@@ -530,12 +530,12 @@ contract EFPListMinterTest is Test {
         
         // Test easyMint with native location
         vm.expectEmit(true, false, false, true);
-        emit EFPListMinterV2.Minted(address(this), nativeLocation);
+        emit EFPListMinterV2.Minted('easyMint', address(this), nativeLocation);
         minter.easyMint(nativeLocation);
         
         // Test easyMint with non-native location
         vm.expectEmit(true, false, false, true);
-        emit EFPListMinterV2.Minted(address(this), nonNativeLocation);
+        emit EFPListMinterV2.Minted('easyMint', address(this), nonNativeLocation);
         minter.easyMint(nonNativeLocation);
     }
 
@@ -550,10 +550,51 @@ contract EFPListMinterTest is Test {
             bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
             
             vm.expectEmit(true, false, false, true);
-            emit EFPListMinterV2.MintedTo(recipients[i], listStorageLocation);
+            emit EFPListMinterV2.Minted('easyMintTo', recipients[i], listStorageLocation);
             
             minter.easyMintTo(recipients[i], listStorageLocation);
         }
+    }
+
+    function test_Events_AllMintingMethods() public {
+        // Test all minting methods emit the correct function names
+        uint256 baseSlot = 10000;
+        address recipient = address(0xabc);
+        
+        // Test easyMint
+        uint256 slot1 = _getSlot(address(this), uint96(baseSlot + 1));
+        bytes memory lsl1 = _makeListStorageLocation(address(listRecords), slot1);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMint', address(this), lsl1);
+        minter.easyMint(lsl1);
+        
+        // Test easyMintTo
+        uint256 slot2 = _getSlot(address(this), uint96(baseSlot + 2));
+        bytes memory lsl2 = _makeListStorageLocation(address(listRecords), slot2);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMintTo', recipient, lsl2);
+        minter.easyMintTo(recipient, lsl2);
+        
+        // Test mintPrimaryListNoMeta
+        uint256 slot3 = _getSlot(address(this), uint96(baseSlot + 3));
+        bytes memory lsl3 = _makeListStorageLocation(address(listRecords), slot3);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintPrimaryListNoMeta', address(this), lsl3);
+        minter.mintPrimaryListNoMeta(lsl3);
+        
+        // Test mintNoMeta
+        uint256 slot4 = _getSlot(address(this), uint96(baseSlot + 4));
+        bytes memory lsl4 = _makeListStorageLocation(address(listRecords), slot4);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintNoMeta', address(this), lsl4);
+        minter.mintNoMeta(lsl4);
+        
+        // Test mintToNoMeta
+        uint256 slot5 = _getSlot(address(this), uint96(baseSlot + 5));
+        bytes memory lsl5 = _makeListStorageLocation(address(listRecords), slot5);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintToNoMeta', recipient, lsl5);
+        minter.mintToNoMeta(recipient, lsl5);
     }
 
     function test_Events_CorrectEventDataEncoding() public {
@@ -575,13 +616,14 @@ contract EFPListMinterTest is Test {
         }
         
         // Verify event signature
-        assertEq(mintedLog.topics[0], keccak256("Minted(address,bytes)"));
+        assertEq(mintedLog.topics[0], keccak256("Minted(string,address,bytes)"));
         
         // Verify indexed parameter (address)
         assertEq(mintedLog.topics[1], bytes32(uint256(uint160(address(this)))));
         
-        // Verify non-indexed parameter (bytes data)
-        bytes memory decodedData = abi.decode(mintedLog.data, (bytes));
+        // Verify non-indexed parameters (string method, bytes data)
+        (string memory method, bytes memory decodedData) = abi.decode(mintedLog.data, (string, bytes));
+        assertEq(method, 'easyMint');
         assertEq(decodedData, listStorageLocation);
     }
 }
