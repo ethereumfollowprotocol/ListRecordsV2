@@ -6,7 +6,7 @@ import { foundry, etherscan, actions, react, type FoundryConfig } from '@wagmi/c
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
-const ENABLE_ETHERSCAN = false
+const ENABLE_ETHERSCAN = true
 
 /**
  * docs: https://beta.wagmi.sh
@@ -64,32 +64,25 @@ function etherscanPlugin(): Plugin {
   }
   return etherscan({
     apiKey: process.env.ETHERSCAN_API_KEY,
-    chainId: 11_155_111,
+    chainId: 84532,
     contracts: [
+    //   {
+    //     name: 'EFPAccountMetadata',
+    //     address: '0x5289fE5daBC021D02FDDf23d4a4DF96F4E0F17EF'
+    //   },
+    //   {
+    //     name: 'EFPListRecords',
+    //     address: '0x41Aa48Ef3c0446b46a5b1cc6337FF3d3716E2A33'
+    //   },
+    //   {
+    //     name: 'EFPListRegistry',
+    //     address: '0x0E688f5DCa4a0a4729946ACbC44C792341714e08'
+    //   },
       {
-        name: 'EFPAccountMetadata',
-        address: '0x_PLACEHOLDER'
-      },
-      {
-        name: 'EFPListManager',
-        address: '0x_PLACEHOLDER'
-      },
-      {
-        name: 'ListMetadata',
-        address: '0x_PLACEHOLDER'
-      },
-      {
-        name: 'ListRecords',
-        address: '0x_PLACEHOLDER'
-      },
-      {
-        name: 'EFPListRecords',
-        address: '0x_PLACEHOLDER'
-      },
-      {
-        name: 'EFPListRegistry',
-        address: '0x_PLACEHOLDER'
+        name: 'EFPListRecordsV2',
+        address: '0x933a1bB6697Ae3c30Dd63A863d22763B4E40199A'
       }
+
     ]
   })
 }

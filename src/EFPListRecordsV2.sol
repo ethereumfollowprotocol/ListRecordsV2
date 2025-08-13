@@ -20,8 +20,8 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   // Data Structures
   ///////////////////////////////////////////////////////////////////////////
 
-  /// @dev The key-value set for each token ID
-  mapping(uint256 => mapping(string => bytes)) private values;
+  /// @dev The key-value set for each slot
+  mapping(uint256 slot => mapping(string key => bytes value)) private values;
 
   /////////////////////////////////////////////////////////////////////////////
   // Pausable
@@ -61,30 +61,27 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   /////////////////////////////////////////////////////////////////////////////
 
   /**
-   * @dev Retrieves metadata value for token ID and key.
-   * @param tokenId The token Id to query.
+   * @dev Retrieves metadata value for slot and key.
+   * @param slot The slot to query.
    * @param key The key to query.
    * @return The associated value.
    */
-  function getMetadataValue(uint256 tokenId, string calldata key) external view returns (bytes memory) {
-    return values[tokenId][key];
+  function getMetadataValue(uint256 slot, string calldata key) external view returns (bytes memory) {
+    return values[slot][key];
   }
 
   /**
-   * @dev Retrieves metadata values for token ID and keys.
-   * @param tokenId The token Id to query.
+   * @dev Retrieves metadata values for slot and keys.
+   * @param slot The slot to query.
    * @param keys The keys to query.
    * @return The associated values.
    */
-  function getMetadataValues(uint256 tokenId, string[] calldata keys) external view returns (bytes[] memory) {
+  function getMetadataValues(uint256 slot, string[] calldata keys) external view returns (bytes[] memory) {
     uint256 length = keys.length;
     bytes[] memory result = new bytes[](length);
-    for (uint256 i = 0; i < length;) {
+    for (uint256 i = 0; i < length; ++i) {
       string calldata key = keys[i];
-      result[i] = values[tokenId][key];
-      unchecked {
-        ++i;
-      }
+      result[i] = values[slot][key];
     }
     return result;
   }
@@ -94,8 +91,8 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   /////////////////////////////////////////////////////////////////////////////
 
   /**
-   * @dev Sets metadata records for token ID with the unique key key to value,
-   * overwriting anything previously stored for token ID and key. To clear a
+   * @dev Sets metadata records for slot with the unique key key to value,
+   * overwriting anything previously stored for slot and key. To clear a
    * field, set it to the empty string.
    * @param slot The slot corresponding to the list to update.
    * @param key The key to set.
@@ -107,8 +104,8 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   }
 
   /**
-   * @dev Sets metadata records for token ID with the unique key key to value,
-   * overwriting anything previously stored for token ID and key. To clear a
+   * @dev Sets metadata records for slot with the unique key key to value,
+   * overwriting anything previously stored for slot and key. To clear a
    * field, set it to the empty string. Only callable by the list manager.
    * @param slot The slot corresponding to the list to update.
    * @param key The key to set.
@@ -123,24 +120,21 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   }
 
   /**
-   * @dev Sets an array of metadata records for a token ID. Each record is a
+   * @dev Sets an array of metadata records for a slot. Each record is a
    * key/value pair.
    * @param slot The slot corresponding to the list to update.
    * @param records The records to set.
    */
   function _setMetadataValues(uint256 slot, KeyValue[] calldata records) internal {
     uint256 length = records.length;
-    for (uint256 i = 0; i < length;) {
+    for (uint256 i = 0; i < length; ++i) {
       KeyValue calldata record = records[i];
       _setMetadataValue(slot, record.key, record.value);
-      unchecked {
-        ++i;
-      }
     }
   }
 
   /**
-   * @dev Sets an array of metadata records for a token ID. Each record is a
+   * @dev Sets an array of metadata records for a slot. Each record is a
    * key/value pair. Only callable by the list manager.
    * @param slot The slot corresponding to the list to update.
    * @param records The records to set.
@@ -161,7 +155,7 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   modifier onlyListManager(uint256 slot) {
     bytes memory existing = values[slot]['manager'];
     // if not set, claim for msg.sender
-    if (existing.length != 20) {
+    if (existing.length == 0) {
       _claimListManager(slot, msg.sender);
     } else {
       address existingManager = bytesToAddress(existing);
@@ -290,7 +284,7 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
 
   /// @notice Stores a sequence of operations for each list identified by its slot.
   /// @dev Each list can have multiple operations performed over time.
-  mapping(uint256 => bytes[]) public listOps;
+  mapping(uint256 slot => bytes[] listOps) public listOps;
 
   ///////////////////////////////////////////////////////////////////////////
   // List Operation Functions -  Read
@@ -328,12 +322,8 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
     }
 
     bytes[] memory ops = new bytes[](end - start);
-    for (uint256 i = start; i < end;) {
+    for (uint256 i = start; i < end; ++i) {
       ops[i - start] = listOps[slot][i];
-
-      unchecked {
-        ++i;
-      }
     }
     return ops;
   }
@@ -377,11 +367,8 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
    */
   function _applyListOps(uint256 slot, bytes[] calldata ops) internal {
     uint256 len = ops.length;
-    for (uint256 i = 0; i < len;) {
+    for (uint256 i = 0; i < len; ++i) {
       _applyListOp(slot, ops[i]);
-      unchecked {
-        ++i;
-      }
     }
   }
 

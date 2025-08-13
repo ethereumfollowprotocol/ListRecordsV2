@@ -248,4 +248,382 @@ contract EFPListMinterTest is Test {
     }
     // change slot / reset list
     
+    /////////////////////////////////////////////////////////////////////////////
+    // decodeLSL tests
+    /////////////////////////////////////////////////////////////////////////////
+
+    function test_DecodeLSL_ValidInput() public view {
+        uint256 expectedChain = 8453;
+        uint256 expectedSlot = _getSlot(address(this), 9999);
+        address expectedContract = address(listRecords);
+        
+        bytes memory listStorageLocation = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            expectedChain, 
+            expectedContract, 
+            expectedSlot
+        );
+        
+        (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+        
+        assertEq(chain, expectedChain);
+        assertEq(slot, expectedSlot);
+        assertEq(contractAddress, expectedContract);
+    }
+
+    function test_DecodeLSL_DifferentChainIds() public view {
+        uint256[] memory chainIds = new uint256[](4);
+        chainIds[0] = 1; // Ethereum mainnet
+        chainIds[1] = 8453; // Base
+        chainIds[2] = 10; // Optimism
+        chainIds[3] = 42161; // Arbitrum
+        
+        uint256 expectedSlot = _getSlot(address(this), 1111);
+        address expectedContract = address(0x123);
+        
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            bytes memory listStorageLocation = abi.encodePacked(
+                VERSION, 
+                LIST_LOCATION_TYPE, 
+                chainIds[i], 
+                expectedContract, 
+                expectedSlot
+            );
+            
+            (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+            
+            assertEq(chain, chainIds[i]);
+            assertEq(slot, expectedSlot);
+            assertEq(contractAddress, expectedContract);
+        }
+    }
+
+    function test_DecodeLSL_DifferentContracts() public view {
+        address[] memory contracts = new address[](3);
+        contracts[0] = address(listRecords);
+        contracts[1] = address(0x456);
+        contracts[2] = address(0x789);
+        
+        uint256 expectedChain = this._getChainId();
+        uint256 expectedSlot = _getSlot(address(this), 2222);
+        
+        for (uint256 i = 0; i < contracts.length; i++) {
+            bytes memory listStorageLocation = abi.encodePacked(
+                VERSION, 
+                LIST_LOCATION_TYPE, 
+                expectedChain, 
+                contracts[i], 
+                expectedSlot
+            );
+            
+            (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+            
+            assertEq(chain, expectedChain);
+            assertEq(slot, expectedSlot);
+            assertEq(contractAddress, contracts[i]);
+        }
+    }
+
+    function test_DecodeLSL_DifferentSlots() public view {
+        uint256[] memory slots = new uint256[](3);
+        slots[0] = _getSlot(address(this), 1);
+        slots[1] = _getSlot(address(0x123), 9999);
+        slots[2] = _getSlot(address(0x456), 0);
+        
+        uint256 expectedChain = this._getChainId();
+        address expectedContract = address(listRecords);
+        
+        for (uint256 i = 0; i < slots.length; i++) {
+            bytes memory listStorageLocation = abi.encodePacked(
+                VERSION, 
+                LIST_LOCATION_TYPE, 
+                expectedChain, 
+                expectedContract, 
+                slots[i]
+            );
+            
+            (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+            
+            assertEq(chain, expectedChain);
+            assertEq(slot, slots[i]);
+            assertEq(contractAddress, expectedContract);
+        }
+    }
+
+    function test_DecodeLSL_EdgeCases() public view {
+        // Test with address(0)
+        bytes memory listStorageLocationZeroAddress = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            uint256(1), 
+            address(0), 
+            uint256(0)
+        );
+        
+        (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocationZeroAddress);
+        
+        assertEq(chain, 1);
+        assertEq(slot, 0);
+        assertEq(contractAddress, address(0));
+        
+        // Test with maximum values
+        bytes memory listStorageLocationMax = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            type(uint256).max, 
+            address(type(uint160).max), 
+            type(uint256).max
+        );
+        
+        (uint256 chainMax, uint256 slotMax, address contractMax) = minter.decodeLSL(listStorageLocationMax);
+        
+        assertEq(chainMax, type(uint256).max);
+        assertEq(slotMax, type(uint256).max);
+        assertEq(contractMax, address(type(uint160).max));
+    }
+
+    function test_DecodeLSL_CurrentChainIntegration() public view {
+        uint256 currentChain = this._getChainId();
+        uint256 testSlot = _getSlot(address(this), 5555);
+        
+        bytes memory listStorageLocation = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            currentChain, 
+            address(listRecords), 
+            testSlot
+        );
+        
+        (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+        
+        assertEq(chain, currentChain);
+        assertEq(slot, testSlot);
+        assertEq(contractAddress, address(listRecords));
+        
+        // Verify this matches what we expect for native chain detection
+        assertTrue(chain == currentChain);
+        assertTrue(contractAddress == address(listRecords));
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // encodeLSL tests
+    /////////////////////////////////////////////////////////////////////////////
+
+    function test_EncodeLSL_ValidInput() public view {
+        uint256 testChain = 8453;
+        uint256 testSlot = _getSlot(address(this), 9999);
+        address testContract = address(listRecords);
+        
+        bytes memory encoded = minter.encodeLSL(testChain, testSlot, testContract);
+        
+        // Verify the encoded format matches expected structure
+        bytes memory expected = abi.encodePacked(
+            bytes1(0x01), // version
+            bytes1(0x01), // type  
+            bytes32(testChain),
+            testContract,
+            bytes32(testSlot)
+        );
+        
+        assertEq(encoded, expected);
+        
+        // Verify we can decode what we encoded
+        (uint256 decodedChain, uint256 decodedSlot, address decodedContract) = minter.decodeLSL(encoded);
+        assertEq(decodedChain, testChain);
+        assertEq(decodedSlot, testSlot);
+        assertEq(decodedContract, testContract);
+    }
+
+    function test_EncodeLSL_RoundTrip() public view {
+        // Test multiple round trips with different values
+        uint256[] memory chains = new uint256[](3);
+        chains[0] = 1; // Ethereum
+        chains[1] = 8453; // Base
+        chains[2] = 42161; // Arbitrum
+        
+        for (uint256 i = 0; i < chains.length; i++) {
+            uint256 testSlot = _getSlot(address(this), uint96(i * 1000));
+            address testContract = address(uint160(0x1000 + i));
+            
+            bytes memory encoded = minter.encodeLSL(chains[i], testSlot, testContract);
+            (uint256 decodedChain, uint256 decodedSlot, address decodedContract) = minter.decodeLSL(encoded);
+            
+            assertEq(decodedChain, chains[i]);
+            assertEq(decodedSlot, testSlot);
+            assertEq(decodedContract, testContract);
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Event emission tests
+    /////////////////////////////////////////////////////////////////////////////
+
+    function test_EasyMint_EmitsMintedEvent() public {
+        uint256 slot = _getSlot(address(this), 1234);
+        bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+        
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMint', address(this), listStorageLocation);
+        
+        minter.easyMint(listStorageLocation);
+    }
+
+    function test_EasyMintTo_EmitsMintedEvent() public {
+        uint256 slot = _getSlot(address(this), 5678);
+        bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+        address recipient = address(0x456);
+        
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMintTo', recipient, listStorageLocation);
+        
+        minter.easyMintTo(recipient, listStorageLocation);
+    }
+
+    function test_MintPrimaryListNoMeta_EmitsMintedEvent() public {
+        uint256 slot = _getSlot(address(this), 9012);
+        bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+        
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintPrimaryListNoMeta', address(this), listStorageLocation);
+        
+        minter.mintPrimaryListNoMeta(listStorageLocation);
+    }
+
+    function test_MintNoMeta_EmitsMintedEvent() public {
+        uint256 slot = _getSlot(address(this), 3456);
+        bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+        
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintNoMeta', address(this), listStorageLocation);
+        
+        minter.mintNoMeta(listStorageLocation);
+    }
+
+    function test_MintToNoMeta_EmitsMintedEvent() public {
+        uint256 slot = _getSlot(address(this), 7890);
+        bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+        address recipient = address(0x789);
+        
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintToNoMeta', recipient, listStorageLocation);
+        
+        minter.mintToNoMeta(recipient, listStorageLocation);
+    }
+
+    function test_Events_WithDifferentListStorageLocations() public {
+        // Test events with different chain IDs and contracts
+        uint256 slot1 = _getSlot(address(this), 1111);
+        uint256 slot2 = _getSlot(address(this), 2222);
+        
+        // Native chain location
+        bytes memory nativeLocation = _makeListStorageLocation(address(listRecords), slot1);
+        
+        // Non-native chain location  
+        bytes memory nonNativeLocation = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            uint256(1), // Different chain
+            address(listRecords), 
+            slot2
+        );
+        
+        // Test easyMint with native location
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMint', address(this), nativeLocation);
+        minter.easyMint(nativeLocation);
+        
+        // Test easyMint with non-native location
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMint', address(this), nonNativeLocation);
+        minter.easyMint(nonNativeLocation);
+    }
+
+    function test_Events_WithMultipleRecipients() public {
+        address[] memory recipients = new address[](3);
+        recipients[0] = address(0x111);
+        recipients[1] = address(0x222);
+        recipients[2] = address(0x333);
+        
+        for (uint256 i = 0; i < recipients.length; i++) {
+            uint256 slot = _getSlot(address(this), uint96(5000 + i));
+            bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+            
+            vm.expectEmit(true, false, false, true);
+            emit EFPListMinterV2.Minted('easyMintTo', recipients[i], listStorageLocation);
+            
+            minter.easyMintTo(recipients[i], listStorageLocation);
+        }
+    }
+
+    function test_Events_AllMintingMethods() public {
+        // Test all minting methods emit the correct function names
+        uint256 baseSlot = 10000;
+        address recipient = address(0xabc);
+        
+        // Test easyMint
+        uint256 slot1 = _getSlot(address(this), uint96(baseSlot + 1));
+        bytes memory lsl1 = _makeListStorageLocation(address(listRecords), slot1);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMint', address(this), lsl1);
+        minter.easyMint(lsl1);
+        
+        // Test easyMintTo
+        uint256 slot2 = _getSlot(address(this), uint96(baseSlot + 2));
+        bytes memory lsl2 = _makeListStorageLocation(address(listRecords), slot2);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('easyMintTo', recipient, lsl2);
+        minter.easyMintTo(recipient, lsl2);
+        
+        // Test mintPrimaryListNoMeta
+        uint256 slot3 = _getSlot(address(this), uint96(baseSlot + 3));
+        bytes memory lsl3 = _makeListStorageLocation(address(listRecords), slot3);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintPrimaryListNoMeta', address(this), lsl3);
+        minter.mintPrimaryListNoMeta(lsl3);
+        
+        // Test mintNoMeta
+        uint256 slot4 = _getSlot(address(this), uint96(baseSlot + 4));
+        bytes memory lsl4 = _makeListStorageLocation(address(listRecords), slot4);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintNoMeta', address(this), lsl4);
+        minter.mintNoMeta(lsl4);
+        
+        // Test mintToNoMeta
+        uint256 slot5 = _getSlot(address(this), uint96(baseSlot + 5));
+        bytes memory lsl5 = _makeListStorageLocation(address(listRecords), slot5);
+        vm.expectEmit(true, false, false, true);
+        emit EFPListMinterV2.Minted('mintToNoMeta', recipient, lsl5);
+        minter.mintToNoMeta(recipient, lsl5);
+    }
+
+    function test_Events_CorrectEventDataEncoding() public {
+        uint256 slot = _getSlot(address(this), 4321);
+        bytes memory listStorageLocation = _makeListStorageLocation(address(listRecords), slot);
+        
+        vm.recordLogs();
+        minter.easyMint(listStorageLocation);
+        
+        VmSafe.Log[] memory logs = vm.getRecordedLogs();
+        
+        // Find the Minted event (should be the last one emitted by our contract)
+        VmSafe.Log memory mintedLog;
+        for (uint256 i = logs.length; i > 0; i--) {
+            if (logs[i-1].emitter == address(minter)) {
+                mintedLog = logs[i-1];
+                break;
+            }
+        }
+        
+        // Verify event signature
+        assertEq(mintedLog.topics[0], keccak256("Minted(string,address,bytes)"));
+        
+        // Verify indexed parameter (address)
+        assertEq(mintedLog.topics[1], bytes32(uint256(uint160(address(this)))));
+        
+        // Verify non-indexed parameters (string method, bytes data)
+        (string memory method, bytes memory decodedData) = abi.decode(mintedLog.data, (string, bytes));
+        assertEq(method, 'easyMint');
+        assertEq(decodedData, listStorageLocation);
+    }
 }
