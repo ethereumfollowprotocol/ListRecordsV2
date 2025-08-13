@@ -69,18 +69,29 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
   // minting
   /////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * @dev Decode a list storage location 
-     * @param listStorageLocation The storage location of the list.
-     * @return chain The chain ID of the list.
-     * @return slot The slot of the list.
-     * @return contractAddress The contract address of the list.
-     */
+  /**
+   * @dev Decode a list storage location 
+   * @param listStorageLocation The storage location of the list.
+   * @return chain The chain ID of the list.
+   * @return slot The slot of the list.
+   * @return contractAddress The contract address of the list.
+   */
   function decodeLSL(bytes calldata listStorageLocation) public pure returns (uint256, uint256, address) {
     address contractAddress = _bytesToAddress(listStorageLocation, 34);
     uint256 chain = _bytesToUint(listStorageLocation, 2);
     uint256 slot = _bytesToUint(listStorageLocation, 54);
     return (chain, slot, contractAddress);
+  }
+
+  /**
+   * @dev Encode a list storage location. Note this has a fixed version and type.
+   * @param chain The chain ID of the list.
+   * @param slot The slot of the list.
+   * @param contractAddress The contract address of the list.
+   * @return The encoded list storage location.
+   */
+  function encodeLSL(uint256 chain, uint256 slot, address contractAddress) public pure returns (bytes memory) {
+    return abi.encodePacked(bytes1(0x01), bytes1(0x01), bytes32(chain), contractAddress, bytes32(slot));
   }
 
   /**
