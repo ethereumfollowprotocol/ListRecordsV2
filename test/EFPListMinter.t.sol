@@ -248,4 +248,161 @@ contract EFPListMinterTest is Test {
     }
     // change slot / reset list
     
+    /////////////////////////////////////////////////////////////////////////////
+    // decodeLSL tests
+    /////////////////////////////////////////////////////////////////////////////
+
+    function test_DecodeLSL_ValidInput() public view {
+        uint256 expectedChain = 8453;
+        uint256 expectedSlot = _getSlot(address(this), 9999);
+        address expectedContract = address(listRecords);
+        
+        bytes memory listStorageLocation = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            expectedChain, 
+            expectedContract, 
+            expectedSlot
+        );
+        
+        (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+        
+        assertEq(chain, expectedChain);
+        assertEq(slot, expectedSlot);
+        assertEq(contractAddress, expectedContract);
+    }
+
+    function test_DecodeLSL_DifferentChainIds() public view {
+        uint256[] memory chainIds = new uint256[](4);
+        chainIds[0] = 1; // Ethereum mainnet
+        chainIds[1] = 8453; // Base
+        chainIds[2] = 10; // Optimism
+        chainIds[3] = 42161; // Arbitrum
+        
+        uint256 expectedSlot = _getSlot(address(this), 1111);
+        address expectedContract = address(0x123);
+        
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            bytes memory listStorageLocation = abi.encodePacked(
+                VERSION, 
+                LIST_LOCATION_TYPE, 
+                chainIds[i], 
+                expectedContract, 
+                expectedSlot
+            );
+            
+            (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+            
+            assertEq(chain, chainIds[i]);
+            assertEq(slot, expectedSlot);
+            assertEq(contractAddress, expectedContract);
+        }
+    }
+
+    function test_DecodeLSL_DifferentContracts() public view {
+        address[] memory contracts = new address[](3);
+        contracts[0] = address(listRecords);
+        contracts[1] = address(0x456);
+        contracts[2] = address(0x789);
+        
+        uint256 expectedChain = this._getChainId();
+        uint256 expectedSlot = _getSlot(address(this), 2222);
+        
+        for (uint256 i = 0; i < contracts.length; i++) {
+            bytes memory listStorageLocation = abi.encodePacked(
+                VERSION, 
+                LIST_LOCATION_TYPE, 
+                expectedChain, 
+                contracts[i], 
+                expectedSlot
+            );
+            
+            (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+            
+            assertEq(chain, expectedChain);
+            assertEq(slot, expectedSlot);
+            assertEq(contractAddress, contracts[i]);
+        }
+    }
+
+    function test_DecodeLSL_DifferentSlots() public view {
+        uint256[] memory slots = new uint256[](3);
+        slots[0] = _getSlot(address(this), 1);
+        slots[1] = _getSlot(address(0x123), 9999);
+        slots[2] = _getSlot(address(0x456), 0);
+        
+        uint256 expectedChain = this._getChainId();
+        address expectedContract = address(listRecords);
+        
+        for (uint256 i = 0; i < slots.length; i++) {
+            bytes memory listStorageLocation = abi.encodePacked(
+                VERSION, 
+                LIST_LOCATION_TYPE, 
+                expectedChain, 
+                expectedContract, 
+                slots[i]
+            );
+            
+            (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+            
+            assertEq(chain, expectedChain);
+            assertEq(slot, slots[i]);
+            assertEq(contractAddress, expectedContract);
+        }
+    }
+
+    function test_DecodeLSL_EdgeCases() public view {
+        // Test with address(0)
+        bytes memory listStorageLocationZeroAddress = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            uint256(1), 
+            address(0), 
+            uint256(0)
+        );
+        
+        (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocationZeroAddress);
+        
+        assertEq(chain, 1);
+        assertEq(slot, 0);
+        assertEq(contractAddress, address(0));
+        
+        // Test with maximum values
+        bytes memory listStorageLocationMax = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            type(uint256).max, 
+            address(type(uint160).max), 
+            type(uint256).max
+        );
+        
+        (uint256 chainMax, uint256 slotMax, address contractMax) = minter.decodeLSL(listStorageLocationMax);
+        
+        assertEq(chainMax, type(uint256).max);
+        assertEq(slotMax, type(uint256).max);
+        assertEq(contractMax, address(type(uint160).max));
+    }
+
+    function test_DecodeLSL_CurrentChainIntegration() public view {
+        uint256 currentChain = this._getChainId();
+        uint256 testSlot = _getSlot(address(this), 5555);
+        
+        bytes memory listStorageLocation = abi.encodePacked(
+            VERSION, 
+            LIST_LOCATION_TYPE, 
+            currentChain, 
+            address(listRecords), 
+            testSlot
+        );
+        
+        (uint256 chain, uint256 slot, address contractAddress) = minter.decodeLSL(listStorageLocation);
+        
+        assertEq(chain, currentChain);
+        assertEq(slot, testSlot);
+        assertEq(contractAddress, address(listRecords));
+        
+        // Verify this matches what we expect for native chain detection
+        assertTrue(chain == currentChain);
+        assertTrue(contractAddress == address(listRecords));
+    }
 }

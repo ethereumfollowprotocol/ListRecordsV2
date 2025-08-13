@@ -69,26 +69,38 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
   // minting
   /////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * @dev Decode a list storage location 
+     * @param listStorageLocation The storage location of the list.
+     * @return chain The chain ID of the list.
+     * @return slot The slot of the list.
+     * @return contractAddress The contract address of the list.
+     */
+  function decodeLSL(bytes calldata listStorageLocation) public pure returns (uint256, uint256, address) {
+    address contractAddress = _bytesToAddress(listStorageLocation, 34);
+    uint256 chain = _bytesToUint(listStorageLocation, 2);
+    uint256 slot = _bytesToUint(listStorageLocation, 54);
+    return (chain, slot, contractAddress);
+  }
+
   /**
-   * @dev Decode a list storage location with no metadata.
+   * @dev Validate and decode a list storage location 
    * @param listStorageLocation The storage location of the list.
+   * @return chain The chain ID of the list.
    * @return slot The slot of the list.
    * @return contractAddress The contract address of the list.
    */
-  function decodeL1ListStorageLocation(bytes calldata listStorageLocation) internal pure returns (uint256, uint256, address) {
+  function validateAndDecodeLSL(bytes calldata listStorageLocation) internal pure returns (uint256, uint256, address) {
     // the list storage location is
     // - version (1 byte)
-    // - list storate location type (1 byte)
+    // - list storage location type (1 byte)
     // - chain id (32 bytes)
     // - contract address (20 bytes)
     // - slot (32 bytes)
     require(listStorageLocation.length == 1 + 1 + 32 + 20 + 32, 'EFPListMinter: invalid list storage location');
     require(listStorageLocation[0] == 0x01, 'EFPListMinter: invalid list storage location version');
     require(listStorageLocation[1] == 0x01, 'EFPListMinter: invalid list storage location type');
-    address contractAddress = _bytesToAddress(listStorageLocation, 34);
-
-    uint256 chain = _bytesToUint(listStorageLocation, 2);
-    uint256 slot = _bytesToUint(listStorageLocation, 54);
+    (uint256 chain, uint256 slot, address contractAddress) = decodeLSL(listStorageLocation);
     return (chain, slot, contractAddress);
   }
 
@@ -98,7 +110,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function easyMint(bytes calldata listStorageLocation) public payable whenNotPaused {
     // validate the list storage location
-    (uint256 chain, uint256 slot, address recordsContract) = decodeL1ListStorageLocation(listStorageLocation);
+    (uint256 chain, uint256 slot, address recordsContract) = validateAndDecodeLSL(listStorageLocation);
 
     uint256 tokenId = registry.totalSupply();
     uint256 currentChain = block.chainid;
@@ -116,7 +128,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function easyMintTo(address to, bytes calldata listStorageLocation) public payable whenNotPaused {
     // validate the list storage location
-    (uint256 chain, uint256 slot, address recordsContract) = decodeL1ListStorageLocation(listStorageLocation);
+    (uint256 chain, uint256 slot, address recordsContract) = validateAndDecodeLSL(listStorageLocation);
 
     uint256 tokenId = registry.totalSupply();
     uint256 currentChain = block.chainid;
@@ -133,7 +145,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function mintPrimaryListNoMeta(bytes calldata listStorageLocation) public payable whenNotPaused {
     // validate the list storage location
-    decodeL1ListStorageLocation(listStorageLocation);
+    validateAndDecodeLSL(listStorageLocation);
     uint256 tokenId = registry.totalSupply();
     _setDefaultListForAccount(msg.sender, tokenId);
     registry.mintTo{value: msg.value}(msg.sender, listStorageLocation);
@@ -145,7 +157,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function mintNoMeta(bytes calldata listStorageLocation) public payable whenNotPaused {
     // validate the list storage location
-    decodeL1ListStorageLocation(listStorageLocation);
+    validateAndDecodeLSL(listStorageLocation);
 
     registry.mintTo{value: msg.value}(msg.sender, listStorageLocation);
   }
@@ -157,7 +169,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
    */
   function mintToNoMeta(address to, bytes calldata listStorageLocation) public payable whenNotPaused {
     // validate the list storage location
-    decodeL1ListStorageLocation(listStorageLocation);
+    validateAndDecodeLSL(listStorageLocation);
 
     registry.mintTo{value: msg.value}(to, listStorageLocation);
   }
