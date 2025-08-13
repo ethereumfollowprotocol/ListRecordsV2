@@ -25,8 +25,8 @@ interface IEFPListRegistryERC721 is IEFPListRegistry {
  * EFP List metadata.
  */
 contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
-  IEFPListRegistryERC721 public registry;
-  IEFPAccountMetadata public accountMetadata;
+  IEFPListRegistryERC721 public immutable registry;
+  IEFPAccountMetadata public immutable accountMetadata;
   IEFPListRecords public listRecordsL1;
 
   constructor(address _registryAddress, address _accountMetadataAddress, address _listRecordsL1) {
