@@ -82,9 +82,6 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
     for (uint256 i = 0; i < length;) {
       string calldata key = keys[i];
       result[i] = values[tokenId][key];
-      unchecked {
-        ++i;
-      }
     }
     return result;
   }
@@ -133,9 +130,6 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
     for (uint256 i = 0; i < length;) {
       KeyValue calldata record = records[i];
       _setMetadataValue(slot, record.key, record.value);
-      unchecked {
-        ++i;
-      }
     }
   }
 
@@ -330,10 +324,6 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
     bytes[] memory ops = new bytes[](end - start);
     for (uint256 i = start; i < end;) {
       ops[i - start] = listOps[slot][i];
-
-      unchecked {
-        ++i;
-      }
     }
     return ops;
   }
@@ -379,9 +369,6 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
     uint256 len = ops.length;
     for (uint256 i = 0; i < len;) {
       _applyListOp(slot, ops[i]);
-      unchecked {
-        ++i;
-      }
     }
   }
 
