@@ -29,6 +29,12 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
   IEFPAccountMetadata public immutable accountMetadata;
   IEFPListRecords public listRecordsL1;
 
+  event Minted(address indexed to, bytes listStorageLocation);
+  event MintedTo(address indexed to, bytes listStorageLocation);
+  event MintedPrimaryListNoMeta(address indexed to, bytes listStorageLocation);
+  event MintedNoMeta(address indexed to, bytes listStorageLocation);
+  event MintedToNoMeta(address indexed to, bytes listStorageLocation);
+
   constructor(address _registryAddress, address _accountMetadataAddress, address _listRecordsL1) {
     registry = IEFPListRegistryERC721(_registryAddress);
     accountMetadata = IEFPAccountMetadata(_accountMetadataAddress);
@@ -130,6 +136,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     if (recordsContract == address(listRecordsL1) && currentChain == chain) {
       listRecordsL1.claimListManagerForAddress(slot, msg.sender);
     }
+    emit Minted(msg.sender, listStorageLocation);
   }
 
   /**
@@ -148,6 +155,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     if (recordsContract == address(listRecordsL1) && currentChain == chain) {
       listRecordsL1.claimListManagerForAddress(slot, msg.sender);
     }
+    emit MintedTo(to, listStorageLocation);
   }
 
   /**
@@ -160,6 +168,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     uint256 tokenId = registry.totalSupply();
     _setDefaultListForAccount(msg.sender, tokenId);
     registry.mintTo{value: msg.value}(msg.sender, listStorageLocation);
+    emit MintedPrimaryListNoMeta(msg.sender, listStorageLocation);
   }
 
   /**
@@ -171,6 +180,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     validateAndDecodeLSL(listStorageLocation);
 
     registry.mintTo{value: msg.value}(msg.sender, listStorageLocation);
+    emit MintedNoMeta(msg.sender, listStorageLocation);
   }
 
   /**
@@ -183,6 +193,7 @@ contract EFPListMinterV2 is ENSReverseClaimer, Pausable {
     validateAndDecodeLSL(listStorageLocation);
 
     registry.mintTo{value: msg.value}(to, listStorageLocation);
+    emit MintedToNoMeta(to, listStorageLocation);
   }
 
   /**
