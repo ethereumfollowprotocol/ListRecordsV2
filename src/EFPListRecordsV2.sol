@@ -79,7 +79,7 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   function getMetadataValues(uint256 tokenId, string[] calldata keys) external view returns (bytes[] memory) {
     uint256 length = keys.length;
     bytes[] memory result = new bytes[](length);
-    for (uint256 i = 0; i < length;) {
+    for (uint256 i = 0; i < length; ++i) {
       string calldata key = keys[i];
       result[i] = values[tokenId][key];
     }
@@ -127,7 +127,7 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
    */
   function _setMetadataValues(uint256 slot, KeyValue[] calldata records) internal {
     uint256 length = records.length;
-    for (uint256 i = 0; i < length;) {
+    for (uint256 i = 0; i < length; ++i) {
       KeyValue calldata record = records[i];
       _setMetadataValue(slot, record.key, record.value);
     }
@@ -155,7 +155,7 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   modifier onlyListManager(uint256 slot) {
     bytes memory existing = values[slot]['manager'];
     // if not set, claim for msg.sender
-    if (existing.length != 20) {
+    if (existing.length == 0) {
       _claimListManager(slot, msg.sender);
     } else {
       address existingManager = bytesToAddress(existing);
@@ -322,7 +322,7 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
     }
 
     bytes[] memory ops = new bytes[](end - start);
-    for (uint256 i = start; i < end;) {
+    for (uint256 i = start; i < end; ++i) {
       ops[i - start] = listOps[slot][i];
     }
     return ops;
@@ -367,7 +367,7 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
    */
   function _applyListOps(uint256 slot, bytes[] calldata ops) internal {
     uint256 len = ops.length;
-    for (uint256 i = 0; i < len;) {
+    for (uint256 i = 0; i < len; ++i) {
       _applyListOp(slot, ops[i]);
     }
   }
