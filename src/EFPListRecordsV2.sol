@@ -21,7 +21,7 @@ abstract contract ListMetadata is IEFPListMetadata, Pausable, Ownable {
   ///////////////////////////////////////////////////////////////////////////
 
   /// @dev The key-value set for each token ID
-  mapping(uint256 => mapping(string => bytes)) private values;
+  mapping(uint256 slot => mapping(string key => bytes value)) private values;
 
   /////////////////////////////////////////////////////////////////////////////
   // Pausable
@@ -290,7 +290,7 @@ abstract contract ListRecordsV2 is IEFPListRecords, ListMetadata {
 
   /// @notice Stores a sequence of operations for each list identified by its slot.
   /// @dev Each list can have multiple operations performed over time.
-  mapping(uint256 => bytes[]) public listOps;
+  mapping(uint256 slot => bytes[] listOps) public listOps;
 
   ///////////////////////////////////////////////////////////////////////////
   // List Operation Functions -  Read
